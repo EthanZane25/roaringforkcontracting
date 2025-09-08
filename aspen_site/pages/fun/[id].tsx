@@ -1,60 +1,132 @@
-// aspen_site/pages/fun/[id].tsx
-import { GetServerSideProps } from "next";
-import { prisma } from "../../lib/prisma";
-import type { Activity } from "@prisma/client";
+// aspen_site/pages/index.tsx
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import type { Restaurant, Activity, Advertisement } from "@prisma/client";
 
-type SerializableActivity = Omit<Activity, "createdAt" | "updatedAt"> & {
-  createdAt: string;
-  updatedAt: string;
-};
+export default function Home() {
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [restaurantsLoading, setRestaurantsLoading] = useState(true);
+  const [restaurantsError, setRestaurantsError] = useState<string | null>(null);
 
-export default function FunPage({
-  activity,
-}: {
-  activity: SerializableActivity | null;
-}) {
-  if (!activity) {
-    return <div className="container mx-auto p-4">Activity not found</div>;
-  }
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
+  const [activitiesError, setActivitiesError] = useState<string | null>(null);
+
+  const [ads, setAds] = useState<Advertisement[]>([]);
+  const [adsLoading, setAdsLoading] = useState(true);
+  const [adsError, setAdsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const ac = new AbortController();
+
+    const fetchRestaurants = async () => {
+      setRestaurantsLoading(true);
+      try {
+        const res = await fetch("/api/restaurants", { signal: ac.signal });
+        if (!res.ok) throw new Error("Failed to load restaurants");
+        const data: Restaurant[] = await res.json();
+        setRestaurants(data);
+        setRestaurantsError(null);
+      } catch (err) {
+        if ((err as any)?.name === "AbortError") return;
+        setRestaurantsError("Failed to load restaurants");
+      } finally {
+        setRestaurantsLoading(false);
+      }
+    };
+
+    const fetchActivities = async () => {
+      setActivitiesLoading(true);
+      try {
+        const res = await fetch("/api/activities", { signal: ac.signal });
+        if (!res.ok) throw new Error("Failed to load activities");
+        const data: Activity[] = await res.json();
+        setActivities(data);
+        setActivitiesError(null);
+      } catch (err) {
+        if ((err as any)?.name === "AbortError") return;
+        setActivitiesError("Failed to load activities");
+      } finally {
+        setActivitiesLoading(false);
+      }
+    };
+
+    const fetchAds = async () => {
+      setAdsLoading(true);
+      try {
+        const res = await fetch("/api/advertisements", { signal: ac.signal });
+        if (!res.ok) throw new Error("Failed to load advertisements");
+        const data: Advertisement[] = await res.json();
+        setAds(data);
+        setAdsError(null);
+      } catch (err) {
+        if ((err as any)?.name === "AbortError") return;
+        setAdsError("Failed to load advertisements");
+      } finally {
+        setAdsLoading(false);
+      }
+    };
+
+    // run in parallel
+    fetchRestaurants();
+    fetchActivities();
+    fetchAds();
+
+    return () => ac.abort();
+  }, []);
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">{activity.name}</h1>
-      <p className="mb-2">{activity.description}</p>
-      {activity.location ? (
-        <p>
-          <strong>Location:</strong> {activity.location}
-        </p>
-      ) : null}
-      {activity.url ? (
-        <p>
-          Website:{" "}
-          <a href={activity.url} target="_blank" rel="noopener noreferrer">
-            {activity.url}
-          </a>
-        </p>
-      ) : null}
+      <h1 className="text-3xl font-bold mb-4">Welcome to Aspen Adventures &amp; Dining</h1>
+
+      <h2 className="text-xl font-semibold mb-2">Explore Restaurants</h2>
+      {restaurantsLoading ? (
+        <p>Loading restaurants...</p>
+      ) : restaurantsError ? (
+        <p className="text-red-500">{restaurantsError}</p>
+      ) : (
+        <ul className="mb-4">
+          {restaurants.map((r) => (
+            <li key={r.id} className="mb-2">
+              <Link href={`/eat/${r.id}`}>{r.name}</Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h2 className="text-xl font-semibold mb-2">Fun Things to Do</h2>
+      {activitiesLoading ? (
+        <p>Loading activities...</p>
+      ) : activitiesError ? (
+        <p className="text-red-500">{activitiesError}</p>
+      ) : (
+        <ul className="mb-4">
+          {activities.map((a) => (
+            <li key={a.id} className="mb-2">
+              <Link href={`/fun/${a.id}`}>{a.name}</Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h2 className="text-xl font-semibold mb-2">Advertisements</h2>
+      {adsLoading ? (
+        <p>Loading advertisements...</p>
+      ) : adsError ? (
+        <p className="text-red-500">{adsError}</p>
+      ) : (
+        <ul>
+          {ads.map((ad) => (
+            <li key={ad.id} className="mb-2">
+              <Link href={`/advertise/${ad.id}`}>{ad.title}</Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="mt-8">
+        <Link href="/admin">Go to Admin Dashboard</Link>
+      </p>
     </div>
   );
 }
-
-export const getServerSideProps: GetServerSideProps<{
-  activity: SerializableActivity | null;
-}> = async (context) => {
-  const { id } = context.params as { id?: string };
-
-  const activityId = id ? Number.parseInt(id, 10) : NaN;
-  if (!Number.isFinite(activityId)) {
-    return { props: { activity: null } };
-  }
-
-  const a = await prisma.activity.findUnique({
-    where: { id: activityId },
-  });
-
-  const activity = a
-    ? (JSON.parse(JSON.stringify(a)) as SerializableActivity)
-    : null;
-
-  return { props: { activity } };
-};
