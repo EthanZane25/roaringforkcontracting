@@ -1,26 +1,60 @@
-import { GetServerSideProps } from 'next';
-import { prisma } from '../../lib/prisma';
+// aspen_site/pages/fun/[id].tsx
+import { GetServerSideProps } from "next";
+import { prisma } from "../../lib/prisma";
+import type { Activity } from "@prisma/client";
 
-export default function Fun({ activity }: { activity: any }) {
+type SerializableActivity = Omit<Activity, "createdAt" | "updatedAt"> & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+export default function FunPage({
+  activity,
+}: {
+  activity: SerializableActivity | null;
+}) {
   if (!activity) {
-    return <div>Activity not found</div>;
+    return <div className="container mx-auto p-4">Activity not found</div>;
   }
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">{activity.name}</h1>
       <p className="mb-2">{activity.description}</p>
-      {activity.location && <p><strong>Location:</strong> {activity.location}</p>}
-      {activity.url && (
+      {activity.location ? (
         <p>
-          Website: <a href={activity.url} target="_blank" rel="noopener noreferrer">{activity.url}</a>
+          <strong>Location:</strong> {activity.location}
         </p>
-      )}
+      ) : null}
+      {activity.url ? (
+        <p>
+          Website:{" "}
+          <a href={activity.url} target="_blank" rel="noopener noreferrer">
+            {activity.url}
+          </a>
+        </p>
+      ) : null}
     </div>
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const { id } = context.params!;
-  const activity = await prisma.activity.findUnique({ where: { id: Number(id) } });
-  return { props: { activity: activity || null } };
+export const getServerSideProps: GetServerSideProps<{
+  activity: SerializableActivity | null;
+}> = async (context) => {
+  const { id } = context.params as { id?: string };
+
+  const activityId = id ? Number.parseInt(id, 10) : NaN;
+  if (!Number.isFinite(activityId)) {
+    return { props: { activity: null } };
+  }
+
+  const a = await prisma.activity.findUnique({
+    where: { id: activityId },
+  });
+
+  const activity = a
+    ? (JSON.parse(JSON.stringify(a)) as SerializableActivity)
+    : null;
+
+  return { props: { activity } };
 };
