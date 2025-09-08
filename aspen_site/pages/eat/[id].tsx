@@ -1,7 +1,12 @@
 import { GetServerSideProps } from 'next';
 import { prisma } from '../../lib/prisma';
+import { Restaurant } from '@/lib/types';
 
-export default function Eat({ restaurant }: { restaurant: any }) {
+interface EatProps {
+  restaurant: Restaurant | null;
+}
+
+export default function Eat({ restaurant }: EatProps) {
   if (!restaurant) {
     return <div>Restaurant not found</div>;
   }
@@ -19,8 +24,8 @@ export default function Eat({ restaurant }: { restaurant: any }) {
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
+export const getServerSideProps: GetServerSideProps<EatProps> = async (context) => {
   const { id } = context.params!;
   const restaurant = await prisma.restaurant.findUnique({ where: { id: Number(id) } });
-  return { props: { restaurant: restaurant || null } };
+  return { props: { restaurant } };
 };

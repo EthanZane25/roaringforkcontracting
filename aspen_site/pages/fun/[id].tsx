@@ -1,7 +1,12 @@
 import { GetServerSideProps } from 'next';
 import { prisma } from '../../lib/prisma';
+import { Activity } from '@/lib/types';
 
-export default function Fun({ activity }: { activity: any }) {
+interface FunProps {
+  activity: Activity | null;
+}
+
+export default function Fun({ activity }: FunProps) {
   if (!activity) {
     return <div>Activity not found</div>;
   }
@@ -19,8 +24,8 @@ export default function Fun({ activity }: { activity: any }) {
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
+export const getServerSideProps: GetServerSideProps<FunProps> = async (context) => {
   const { id } = context.params!;
   const activity = await prisma.activity.findUnique({ where: { id: Number(id) } });
-  return { props: { activity: activity || null } };
+  return { props: { activity } };
 };

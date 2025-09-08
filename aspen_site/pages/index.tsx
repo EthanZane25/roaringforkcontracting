@@ -1,15 +1,22 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { Restaurant, Activity, Advertisement } from '@/lib/types';
 
 export default function Home() {
-  const [restaurants, setRestaurants] = useState([]);
-  const [activities, setActivities] = useState([]);
-  const [ads, setAds] = useState([]);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [ads, setAds] = useState<Advertisement[]>([]);
 
   useEffect(() => {
-    fetch('/api/restaurants').then(res => res.json()).then(setRestaurants);
-    fetch('/api/activities').then(res => res.json()).then(setActivities);
-    fetch('/api/advertisements').then(res => res.json()).then(setAds);
+    fetch('/api/restaurants')
+      .then(res => res.json())
+      .then((data: Restaurant[]) => setRestaurants(data));
+    fetch('/api/activities')
+      .then(res => res.json())
+      .then((data: Activity[]) => setActivities(data));
+    fetch('/api/advertisements')
+      .then(res => res.json())
+      .then((data: Advertisement[]) => setAds(data));
   }, []);
 
   return (
@@ -17,7 +24,7 @@ export default function Home() {
       <h1 className="text-3xl font-bold mb-4">Welcome to Aspen Adventures & Dining</h1>
       <h2 className="text-xl font-semibold mb-2">Explore Restaurants</h2>
       <ul className="mb-4">
-        {restaurants.map((r: any) => (
+        {restaurants.map(r => (
           <li key={r.id} className="mb-2">
             <Link href={`/eat/${r.id}`}>
               {r.name}
@@ -27,7 +34,7 @@ export default function Home() {
       </ul>
       <h2 className="text-xl font-semibold mb-2">Fun Things to Do</h2>
       <ul className="mb-4">
-        {activities.map((a: any) => (
+        {activities.map(a => (
           <li key={a.id} className="mb-2">
             <Link href={`/fun/${a.id}`}>
               {a.name}
@@ -37,7 +44,7 @@ export default function Home() {
       </ul>
       <h2 className="text-xl font-semibold mb-2">Advertisements</h2>
       <ul>
-        {ads.map((ad: any) => (
+        {ads.map(ad => (
           <li key={ad.id} className="mb-2">
             <Link href={`/advertise/${ad.id}`}>
               {ad.title}

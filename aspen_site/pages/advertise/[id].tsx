@@ -1,7 +1,12 @@
 import { GetServerSideProps } from 'next';
 import { prisma } from '../../lib/prisma';
+import { Advertisement } from '@/lib/types';
 
-export default function Ad({ advertisement }: { advertisement: any }) {
+interface AdProps {
+  advertisement: Advertisement | null;
+}
+
+export default function Ad({ advertisement }: AdProps) {
   if (!advertisement) {
     return <div>Advertisement not found</div>;
   }
@@ -21,8 +26,8 @@ export default function Ad({ advertisement }: { advertisement: any }) {
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
+export const getServerSideProps: GetServerSideProps<AdProps> = async (context) => {
   const { id } = context.params!;
   const advertisement = await prisma.advertisement.findUnique({ where: { id: Number(id) } });
-  return { props: { advertisement: advertisement || null } };
+  return { props: { advertisement } };
 };
